@@ -11,34 +11,62 @@ ib = IB()
 ib.connect(host='127.0.0.1', port=7496, clientId=12)
 # ib.qualifyContracts(contract)
 
-# Real time data for stock
-stock_contract = Stock('AAPL', 'SMART', 'USD')
-stock_data = ib.reqTickers(stock_contract)[0]
-print('Time: ', stock_data.time.ctime())
-print('Stock: ', stock_data.contract.symbol)
-print('Bid: ', stock_data.bid)
-print('Ask: ', stock_data.ask)
-print('Last: ', stock_data.last)
-print('Volume: ', stock_data.volume)
+
+def get_stock_data(symbol, real=False, hist=False):
+    stock_contract = Stock(symbol, 'SMART', 'USD')
+
+    if real:
+        stock_data = ib.reqTickers(stock_contract)[0]
+        print()
+        print('Real time data for', stock_contract.symbol)
+        print('Time: ', stock_data.time.ctime())
+        print('Bid: ', stock_data.bid)
+        print('Ask: ', stock_data.ask)
+        print('Last: ', stock_data.last)
+        print('Volume: ', stock_data.volume)
+
+    if hist:
+        hist_data = util.df(ib.reqHistoricalData(stock_contract, '', barSizeSetting='1 hour', durationStr='2 D', whatToShow='TRADES', useRTH=True))
+        print()
+        hist_data.pop('average')
+        hist_data.pop('barCount')
+        print('Historica data for', stock_contract.symbol)
+        print(hist_data)
+        print()
 
 
-# Historical data
-# historical_data_aapl = ib.reqHistoricalData(aapl_contract, '',  barSizeSetting='1 hour', durationStr='2 D',  whatToShow='TRADES',  useRTH=True)
-# hist_data = util.df(historical_data_aapl)
-# hist_data.pop('average')
-# hist_data.pop('barCount')
-# print('Apple stock historical data:')
-# print(hist_data)
-# print()
+def get_options_data(symbol, exp, strike, right, real=False, hist=False):
+    options_contract = Option(symbol, exp, strike, right, 'SMART')
 
-# Options historical data
-# historical_data_aapl = ib.reqHistoricalData(aapl_option_contract, '',  barSizeSetting='1 hour', durationStr='1 D',  whatToShow='TRADES',  useRTH=True)
-# print('Apple options historical data:')
-# hist_data = util.df(historical_data_aapl)
-# hist_data.pop('average')
-# hist_data.pop('barCount')
-# print(hist_data)
-# print()
+    if real:
+        print()
+        opt_data = ib.reqTickers(options_contract)[0]
+        print('Options real time data for', options_contract.symbol)
+        print('Time: ', opt_data.time.ctime())
+        print('Expiration: ', options_contract.lastTradeDateOrContractMonth)
+        print('Strike: ', options_contract.strike)
+        print('Call/Put: ', options_contract.right)
+        print('Bid: ', opt_data.bid)
+        print('Ask: ', opt_data.ask)
+        print('Delta: ', round(opt_data.lastGreeks.delta, 3))
+        print()
+
+    if hist:
+        hist_opt_data = ib.reqHistoricalData(options_contract, '',  barSizeSetting='1 hour', durationStr='1 D',  whatToShow='TRADES',  useRTH=True)
+        print()
+        print('Options real time data for', options_contract.symbol)
+        print('Expiration: ', options_contract.lastTradeDateOrContractMonth)
+        print('Strike: ', options_contract.strike)
+        print('Call/Put: ', options_contract.right)
+        hist_data = util.df(hist_opt_data)
+        hist_data.pop('average')
+        hist_data.pop('barCount')
+        print(hist_data)
+        print()
+
+
+get_stock_data('AAPL', real=True, hist=False)
+get_options_data('AAPL', '20210319', 120, 'C', real=True, hist=False)
 
 time.sleep(1)
 ib.disconnect()
