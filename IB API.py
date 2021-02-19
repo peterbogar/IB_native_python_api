@@ -15,9 +15,9 @@ ib.connect(host='127.0.0.1', port=7496, clientId=12)
 def get_stock_market_data(symbol):
     stock_contract = Stock(symbol, 'SMART', 'USD')
     ib.reqMarketDataType(1)  # Ak vrat -1, treba nstavit Frozen- 2
-    stock_data = ib.reqTickers(stock_contract)[0] # Toto trva 11s!!!!
-    # vrati tuple: bid, ask, last, volume
-    return stock_data.bid, stock_data.ask, stock_data.last, stock_data.volume
+    stock_data = ib.reqTickers(stock_contract)[0] # Mimo RTH to trva 11s!!, v RTH 0,24s
+    # vrati tuple: time, bid, ask, last, volume
+    return stock_data.time.strftime('%A %e-%m-%Y %H:%M:%S %Z'), stock_data.bid, stock_data.ask, stock_data.last, stock_data.volume
 
 
 def get_stock_hist_data(symbol, bar_size, duration, rth):
@@ -29,8 +29,8 @@ def get_stock_hist_data(symbol, bar_size, duration, rth):
     return hist_data
 
 
-print(get_stock_market_data('SPY'))
-print(get_stock_hist_data(symbol='SPY', bar_size='1 day', duration='10 D', rth=False))
+# print(get_stock_market_data('SPY'))
+# print(get_stock_hist_data(symbol='SPY', bar_size='5 mins', duration='2 D', rth=False))
 
 
 def get_options_market_data(symbol, exp, strike, right):
@@ -40,62 +40,27 @@ def get_options_market_data(symbol, exp, strike, right):
 
     # Osetrenie vynimky, ak niesu dostupne live data, iba frozen z predchadzajuceho close, nieje tam delta
     try:
-        return options_data.bid, options_data.ask, options_data.lastGreeks.delta
+        return options_data.bid, options_data.ask, round(options_data.lastGreeks.delta, 3)
     except AttributeError:
         return options_data.bid, options_data.ask
 
 
+def get_options_hist_data(symbol, exp, strike, right):
+    options_contract = Option(symbol, exp, strike, right, 'SMART', '100', 'USD')
+    options_hist_data = ib.reqHistoricalData(options_contract, '',  barSizeSetting='1 hour', durationStr='10 D',  whatToShow='TRADES',  useRTH=True)
+    df_options_hist_data = util.df(options_hist_data)
+    df_options_hist_data.pop('average')
+    df_options_hist_data.pop('barCount')
+
+    return df_options_hist_data
+
+
 # print(get_options_market_data('SPY', '20210319', 400, 'C'))
+# print(get_options_hist_data('SPY', '20210319', 400, 'C'))
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-def get_options_data(symbol, exp, strike, right, real=False, hist=False):
-    options_contract = Option(symbol, exp, strike, right, 'SMART')
-
-    if real:
-        print()
-        opt_data = ib.reqTickers(options_contract)[0]
-        print('Options real time data for', options_contract.symbol)
-        print('Time: ', opt_data.time.ctime())
-        print('Expiration: ', options_contract.lastTradeDateOrContractMonth)
-        print('Strike: ', options_contract.strike)
-        print('Call/Put: ', options_contract.right)
-        print('Bid: ', opt_data.bid)
-        print('Ask: ', opt_data.ask)
-        print('Delta: ', round(opt_data.lastGreeks.delta, 3))
-        print()
-
-    if hist:
-        hist_opt_data = ib.reqHistoricalData(options_contract, '',  barSizeSetting='1 hour', durationStr='1 D',  whatToShow='TRADES',  useRTH=True)
-        print()
-        print('Options real time data for', options_contract.symbol)
-        print('Expiration: ', options_contract.lastTradeDateOrContractMonth)
-        print('Strike: ', options_contract.strike)
-        print('Call/Put: ', options_contract.right)
-        hist_data = util.df(hist_opt_data)
-        hist_data.pop('average')
-        hist_data.pop('barCount')
-        print(hist_data)
-        print()
-
-
-
-# get_options_data('AAPL', '20210319', 120, 'C', real=True, hist=False)
 
 time.sleep(1)
 ib.disconnect()
