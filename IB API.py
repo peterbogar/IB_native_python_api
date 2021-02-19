@@ -12,27 +12,56 @@ ib.connect(host='127.0.0.1', port=7496, clientId=12)
 # ib.qualifyContracts(contract)
 
 
-def get_stock_data(symbol, real=False, hist=False):
+def get_stock_market_data(symbol):
     stock_contract = Stock(symbol, 'SMART', 'USD')
+    ib.reqMarketDataType(1)  # Ak vrat -1, treba nstavit Frozen- 2
+    stock_data = ib.reqTickers(stock_contract)[0] # Toto trva 11s!!!!
+    # vrati tuple: bid, ask, last, volume
+    return stock_data.bid, stock_data.ask, stock_data.last, stock_data.volume
 
-    if real:
-        stock_data = ib.reqTickers(stock_contract)[0]
-        print()
-        print('Real time data for', stock_contract.symbol)
-        print('Time: ', stock_data.time.ctime())
-        print('Bid: ', stock_data.bid)
-        print('Ask: ', stock_data.ask)
-        print('Last: ', stock_data.last)
-        print('Volume: ', stock_data.volume)
 
-    if hist:
-        hist_data = util.df(ib.reqHistoricalData(stock_contract, '', barSizeSetting='1 hour', durationStr='2 D', whatToShow='TRADES', useRTH=True))
-        print()
-        hist_data.pop('average')
-        hist_data.pop('barCount')
-        print('Historica data for', stock_contract.symbol)
-        print(hist_data)
-        print()
+def get_stock_hist_data(symbol, bar_size, duration, rth):
+    stock_contract = Stock(symbol, 'SMART', 'USD')
+    hist_data = util.df(ib.reqHistoricalData(stock_contract, '', barSizeSetting=bar_size, durationStr=duration, whatToShow='TRADES', useRTH=rth)) # Toto trva 0,4s (aj pre 100dni)
+    hist_data.pop('average')
+    hist_data.pop('barCount')
+    # Vrati dataframe
+    return hist_data
+
+
+print(get_stock_market_data('SPY'))
+print(get_stock_hist_data(symbol='SPY', bar_size='1 day', duration='10 D', rth=False))
+
+
+def get_options_market_data(symbol, exp, strike, right):
+    options_contract = Option(symbol, exp, strike, right, 'SMART', '100', 'USD')
+    ib.reqMarketDataType(2)
+    options_data = ib.reqTickers(options_contract)[0]
+
+    # Osetrenie vynimky, ak niesu dostupne live data, iba frozen z predchadzajuceho close, nieje tam delta
+    try:
+        return options_data.bid, options_data.ask, options_data.lastGreeks.delta
+    except AttributeError:
+        return options_data.bid, options_data.ask
+
+
+# print(get_options_market_data('SPY', '20210319', 400, 'C'))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def get_options_data(symbol, exp, strike, right, real=False, hist=False):
@@ -65,8 +94,8 @@ def get_options_data(symbol, exp, strike, right, real=False, hist=False):
         print()
 
 
-get_stock_data('AAPL', real=True, hist=False)
-get_options_data('AAPL', '20210319', 120, 'C', real=True, hist=False)
+
+# get_options_data('AAPL', '20210319', 120, 'C', real=True, hist=False)
 
 time.sleep(1)
 ib.disconnect()
