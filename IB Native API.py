@@ -11,6 +11,8 @@ import time
 
 availableFunds = 0
 buyingPower = 0
+positionsDict = {}
+stockPrice = 1000000
 
 
 class TestWrapper(EWrapper):
@@ -76,6 +78,58 @@ class TestWrapper(EWrapper):
     def account_update(self):
         self.reqAccountSummary(9001, "All", "TotalCashValue, BuyingPower, AvailableFunds")
 
+    # Position handling methods
+    def position(self, account: str, contract: Contract, position: float, avgCost: float):
+        super().position(account, contract, position, avgCost)
+        positionsDict[contract.symbol] = {'positions' : position, 'avgCost' : avgCost}
+        print("Position.", account, "Symbol:", contract.symbol, "SecType:", contract.secType, "Currency:", contract.currency,"Position:", position, "Avg cost:", avgCost)
+
+    def position_update(self):
+        self.reqPositions()
+
+
+
+    # Market Price handling methods
+    def tickPrice(self, reqId: TickerId, tickType: TickType, price: float, attrib: TickAttrib):
+        super().tickPrice(reqId, tickType, price, attrib)
+        print("Tick Price. Ticker Id:", reqId, "tickType:", tickType, "Price:", price, "CanAutoExecute:", attrib.canAutoExecute, "PastLimit:", attrib.pastLimit, end=' ')
+        global stockPrice
+
+        # Declares that we want stockPrice to be treated as a global global stockPriceBool
+        # A boolean flag that signals if the price has been updated
+        # Use tickType 4 (Last Price) if you are running during the market day
+        if tickType == 4:
+            print("\nParsed Tick Price: " + str(price))
+            stockPrice = price
+            stockPriceBool = True
+
+        # Uses tickType 9 (Close Price) if after market hours
+        elif tickType == 9:
+            print("\nParsed Tick Price: " + str(price))
+            stockPrice = price
+            stockPriceBool = True
+
+    def tickSize(self, reqId: TickerId, tickType: TickType, size: int):
+        super().tickSize(reqId, tickType, size)
+        print("Tick Size. Ticker Id:", reqId, "tickType:", tickType, "Size:", size)
+
+    def tickString(self, reqId: TickerId, tickType: TickType, value: str):
+        super().tickString(reqId, tickType, value)
+        print("Tick string. Ticker Id:", reqId, "Typxe:", tickType, "Value:", value)
+
+    def tickGeneric(self, reqId: TickerId, tickType: TickType, value: float):
+        super().tickGeneric(reqId, tickType, value)
+        print("Tick Generic. Ticker Id:", reqId, "tickType:", tickType, "Value:", value)
+
+    def price_update(self, Contract, tickerid):
+        self.reqMktData(tickerid, Contract, "", False, False, [])
+        return tickerid
+
+
+
+
+
+
 
 class TestClient(EClient):
 
@@ -140,6 +194,25 @@ if __name__ == '__main__':
     print('Next ID: ', app.nextOrderId())
     print()
     app.account_update()
+    time.sleep(3)
+    print()
+    app.position_update()
+    time.sleep(3)
+    print()
 
+    # Call client methods to gather most recent information
+    contractObject = contractCreate()
+    # orderObject = orderCreate()
+    app.price_update(contractObject, app.nextOrderId())
+    nextID = app.nextOrderId()
     time.sleep(2)
+    print("Global Tick Price" + str(stockPrice))
+    # Print statement to confirm correct values
+    print("Next valid id: " + str(nextID))
+    print("Buying Power: " + str(buyingPower))
+    print("Available Funds: " + str(availableFunds))
+    # Place order
+    # app.placeOrder(nextID, contractObject, orderObject)
+
+    time.sleep(3)
     app.disconnect()
