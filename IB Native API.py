@@ -9,6 +9,10 @@ import time
 # import math
 
 
+availableFunds = 0
+buyingPower = 0
+
+
 class TestWrapper(EWrapper):
 
     # error handling methods
@@ -43,6 +47,35 @@ class TestWrapper(EWrapper):
         # Overriden method
         self.my_time_queue.put(server_time)
 
+    # ID handling methods
+    def nextValidId(self, orderId: int):
+        super().nextValidId(orderId)
+        logging.debug("setting nextValidOrderId: %d", orderId)
+        self.nextValidOrderId = orderId
+
+    def nextOrderId(self):
+        oid = self.nextValidOrderId
+        self.nextValidOrderId += 1
+        return oid
+
+    # Account details handling methods
+    def accountSummary(self, reqId: int, account: str, tag: str, value: str, currency:str):
+        super().accountSummary(reqId, account, tag, value, currency)
+        print("Acct Summary. ReqId:", reqId, "Acct:", account, "Tag: ", tag, "Value:", value, "Currency:", currency)
+        if tag == "AvailableFunds":
+            global availableFunds
+            availableFunds = value
+        if tag == "BuyingPower":
+            global buyingPower
+            buyingPower = value
+
+    def accountSummaryEnd(self, reqId: int):
+        super().accountSummaryEnd(reqId)
+        print("AccountSummaryEnd. Req Id: ", reqId)
+
+    def account_update(self):
+        self.reqAccountSummary(9001, "All", "TotalCashValue, BuyingPower, AvailableFunds")
+
 
 class TestClient(EClient):
 
@@ -51,7 +84,7 @@ class TestClient(EClient):
         EClient.__init__(self, wrapper)
 
     def server_clock(self):
-        print("Asking server for Unix time")
+        # print("Asking server for Unix time")
         # Creates a queue to store the time
         time_storage = self.wrapper.init_time()
         # Sets up a request for unix time from the Eclient
@@ -66,7 +99,7 @@ class TestClient(EClient):
             requested_time = None
 
         while self.wrapper.is_error():
-            print("Error:")
+            # print("Error:")
             print(self.get_error(timeout=5))
         return requested_time
 
@@ -87,17 +120,26 @@ class TestApp(TestWrapper, TestClient):
         self.init_error()
 
 
-if __name__ == '__main__':
-    print("before start")
-    # Specifies that we are on local host with port 7497 (paper trading port number)
-    app = TestApp("127.0.0.1", 7496, 12)
-    # A printout to show the program began
-    print("The program has begun")
-    # assigning the return from our clock method to a variable
-    requested_time = app.server_clock()
-    # printing the return from the server
-    print("This is the current time from the server " )
-    print(requested_time)
 
-    # Optional disconnect. If keeping an open connection to the input don't disconnet
+def contractCreate():
+    # Fills out the contract object
+    contract1 = Contract()
+    contract1.symbol = "AAPL"
+    contract1.secType = "STK"
+    contract1.currency = "USD"
+    # In the API side, NASDAQ is always defined as ISLAND in the exchange field
+    contract1.exchange = "SMART"
+    contract1.PrimaryExch = "NYSE"
+    return contract1
+
+
+if __name__ == '__main__':
+    app = TestApp("127.0.0.1", 7496, 12)
+
+    print("Server time: ", app.server_clock())
+    print('Next ID: ', app.nextOrderId())
+    print()
+    app.account_update()
+
+    time.sleep(2)
     app.disconnect()
