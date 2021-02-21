@@ -1,5 +1,8 @@
 # Native IB API
 # Based from https://cdcdyn.interactivebrokers.com/webinars/TA-2018-TWS-Python-Receiving-Market-Data-Study-Notes.pdf
+# Market data and historical data
+# Stock and forex
+
 
 from ibapi.client import EClient
 from ibapi.wrapper import EWrapper
@@ -24,23 +27,29 @@ class TestApp(EWrapper, EClient):
         print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open, "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume, "Count:", bar.barCount, "WAP:", bar.average)
 
 
+def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
+    contract = Contract()
+    contract.symbol = symbol
+    contract.secType = sec_type
+    contract.exchange = exchange
+    contract.currency = currency
+    return contract
+
+
 def main():
     app = TestApp()
     app.connect("127.0.0.1", 7496, 12)
-    contract = Contract()
-    contract.symbol = "AAPL"
-    contract.secType = "STK"
-    contract.exchange = "SMART"
-    contract.currency = "USD"
-    contract.primaryExchange = "NASDAQ"
-    app.reqMarketDataType(2)
-    app.reqMktData(1, contract, "", False, False, [])
 
-    # contract.symbol = "EUR"
-    # contract.secType = "CASH"
-    # contract.exchange = "IDEALPRO"
-    # contract.currency = "USD"
-    # app.reqHistoricalData(1, contract, "", "1 D", "1 min", "MIDPOINT", 0, 1, False, [])
+    # Create contract
+    contract_aapl = create_contract('AAPL')
+    contract_eurusd = create_contract('EUR', 'CASH', 'IDEALPRO', 'USD')
+
+    # Market data
+    # app.reqMarketDataType(2)
+    # app.reqMktData(1, contract_eurusd, '', False, False, [])
+
+    # Historical data
+    app.reqHistoricalData(1, contract_aapl, '', '2 D', '1 hour', 'TRADES', 0, 1, False, [])
 
     app.run()
 
