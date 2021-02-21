@@ -1,3 +1,7 @@
+# Access native IB Python API
+# based on GuideToIBAPI.pdf
+
+
 from ibapi.wrapper import *
 from ibapi.client import *
 from ibapi.contract import *
@@ -126,11 +130,6 @@ class TestWrapper(EWrapper):
         return tickerid
 
 
-
-
-
-
-
 class TestClient(EClient):
 
     def __init__(self, wrapper):
@@ -157,7 +156,6 @@ class TestClient(EClient):
             print(self.get_error(timeout=5))
         return requested_time
 
-
 class TestApp(TestWrapper, TestClient):
 
     #Intializes our main classes
@@ -172,8 +170,6 @@ class TestApp(TestWrapper, TestClient):
         setattr(self, "_thread", thread)
         #Starts listening for errors
         self.init_error()
-
-
 
 def contractCreate():
     # Fills out the contract object
@@ -190,6 +186,7 @@ def contractCreate():
 if __name__ == '__main__':
     app = TestApp("127.0.0.1", 7496, 12)
 
+    contractObject = contractCreate()
     print("Server time: ", app.server_clock())
     print('Next ID: ', app.nextOrderId())
     print()
@@ -199,10 +196,6 @@ if __name__ == '__main__':
     app.position_update()
     time.sleep(3)
     print()
-
-    # Call client methods to gather most recent information
-    contractObject = contractCreate()
-    # orderObject = orderCreate()
     app.price_update(contractObject, app.nextOrderId())
     nextID = app.nextOrderId()
     time.sleep(2)
@@ -211,8 +204,6 @@ if __name__ == '__main__':
     print("Next valid id: " + str(nextID))
     print("Buying Power: " + str(buyingPower))
     print("Available Funds: " + str(availableFunds))
-    # Place order
-    # app.placeOrder(nextID, contractObject, orderObject)
 
-    time.sleep(3)
+    time.sleep(2)
     app.disconnect()
