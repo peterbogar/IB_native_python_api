@@ -18,13 +18,13 @@ class TestApp(EWrapper, EClient):
         print("Error: ", reqId, " ", errorCode, " ", errorString)
 
     def tickPrice(self, reqId, tickType, price, attrib):
-        print("Tick Price. Ticker Id:", reqId, "tickType:", TickTypeEnum.to_str(tickType), "Price:", price, end=' ')
+        print("Id:", reqId, "Type:", TickTypeEnum.to_str(tickType), "Price:", price, end=' ')
 
-    def tickSize(self, reqId, tickType, size):
-        print("Tick Size. Ticker Id:", reqId, "tickType:", TickTypeEnum.to_str(tickType), "Size:", size)
+    # def tickSize(self, reqId, tickType, size):
+    #     print("Tick Size. Ticker Id:", reqId, "tickType:", TickTypeEnum.to_str(tickType), "Size:", size)
 
     def historicalData(self, reqId, bar):
-        print("HistoricalData. ", reqId, " Date:", bar.date, "Open:", bar.open, "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume, "Count:", bar.barCount, "WAP:", bar.average)
+        print("Id", reqId, bar.date, "Open:", bar.open, "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:")
 
 
 def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
@@ -39,17 +39,21 @@ def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
 def main():
     app = TestApp()
     app.connect("127.0.0.1", 7496, 12)
+    ticker_id = 1
 
     # Create contract
     contract_aapl = create_contract('AAPL')
     contract_eurusd = create_contract('EUR', 'CASH', 'IDEALPRO', 'USD')
 
     # Market data
-    # app.reqMarketDataType(2)
-    # app.reqMktData(1, contract_eurusd, '', False, False, [])
+    # reqMarketDataType: 1 (default)- live data, 2- frozen live data, 3- delayed data, 4- delayed frozen
+    app.reqMarketDataType(2)
+    # reqMktData(tickerId, contract, genericTickList, snapshot, regulatorySnaphsot, mktDataOptions)
+    app.reqMktData(ticker_id, contract_aapl, '', True, False, [])
 
     # Historical data
-    app.reqHistoricalData(1, contract_aapl, '', '2 D', '1 hour', 'TRADES', 0, 1, False, [])
+    # reqHistoricalData (tickerId, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions
+    # app.reqHistoricalData(ticker_id, contract_aapl, '', '2 D', '1 hour', 'TRADES', False, 1, False, [])
 
     app.run()
 
