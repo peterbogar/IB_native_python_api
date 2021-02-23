@@ -22,7 +22,7 @@ class TestApp(EWrapper, EClient):
     def __init__(self):
         EClient.__init__(self, self)
         self.data = []
-        self.df = None
+        self.df = pd.DataFrame()
 
     def error(self, reqId, errorCode, errorString):
         print("Error: ", reqId, " ", errorCode, " ", errorString)
@@ -40,37 +40,22 @@ class TestApp(EWrapper, EClient):
     # def tickSize(self, reqId, tickType, size):
     #     print("Tick Size. Ticker Id:", reqId, "tickType:", TickTypeEnum.to_str(tickType), "Size:", size)
 
-    # def historicalData(self, reqId, bar):
-    #     print("Id", reqId, bar.date, "Open:", bar.open, "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:")
-
     def contractDetails(self, reqId, contractDetails):
         print("Id:", reqId, contractDetails)
 
     def contractDetailsEnd(self, reqId):
-        # print("\ncontractDetails End\n")
         pass
 
     def stop(self):
         self.done = True
         self.disconnect()
 
-
-    #############################
     def historicalData(self, reqId, bar):
-        self.data.append(vars(bar));
-
-    def historicalDataUpdate(self, reqId, bar):
-        line = vars(bar)
-        # pop date and make it the index, add rest to df
-        # will overwrite last bar at that same time
-        self.df.loc[pd.to_datetime(line.pop('date'))] = line
-
-    def historicalDataEnd(self, reqId: int, start: str, end: str):
-        print("HistoricalDataEnd. ReqId:", reqId, "from", start, "to", end)
+        # print("Id", reqId, bar.date, "Open:", bar.open, "High:", bar.high, "Low:", bar.low, "Close:", bar.close, "Volume:", bar.volume)
+        self.data.append(vars(bar))
         self.df = pd.DataFrame(self.data)
         self.df['date'] = pd.to_datetime(self.df['date'])
         self.df.set_index('date', inplace=True)
-    #########################################
 
 
 def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
@@ -124,11 +109,7 @@ def market_price(contract):
     Timer(2, app.stop).start()
     app.run()
 
-    print()
-    print('Symbol:', contract.symbol)
-    print('Bid:', bid)
-    print('Ask:', ask)
-    print('Close:', close)
+    return contract.symbol, bid, ask, close
 
 
 def historical_data(contract):
@@ -138,16 +119,22 @@ def historical_data(contract):
     ticker_id = 1
 
     # Desc: reqHistoricalData (tickerId, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions
-    app.reqHistoricalData(ticker_id, contract, '', '2 D', '1 hour', 'TRADES', False, 1, False, [])
+    app.reqHistoricalData(ticker_id, contract, '', '1 D', '1 hour', 'TRADES', False, 1, False, [])
 
     Timer(2, app.stop).start()
     app.run()
+
+    app.df.pop('barCount')
+    app.df.pop('average')
+
+    return app.df
 
 
 # Create contract
 stk_aapl = create_contract('AAPL')
 
 # contract_details(stk_aapl)
-# market_price(stk_aapl)
-historical_data(stk_aapl)
-
+# a = market_price(stk_aapl)
+a = historical_data(stk_aapl)
+print(type(a))
+print(a)
