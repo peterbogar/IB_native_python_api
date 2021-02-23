@@ -9,7 +9,6 @@ from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.ticktype import TickTypeEnum
 from threading import Timer
-from time import sleep
 import pandas as pd
 
 
@@ -83,7 +82,7 @@ def create_options_contract(symbol, exp, strike, right, exchange='SMART', curren
     return contract
 
 
-def contract_details(contract):
+def get_contract_details(contract):
     app = TestApp()
     app.connect("127.0.0.1", 7496, 12)
     ticker_id = 1
@@ -95,7 +94,7 @@ def contract_details(contract):
     app.run()
 
 
-def market_price(contract):
+def get_market_price(contract):
     # Print current market bid, ask, close
     app = TestApp()
     app.connect("127.0.0.1", 7496, 12)
@@ -112,14 +111,14 @@ def market_price(contract):
     return contract.symbol, bid, ask, close
 
 
-def historical_data(contract):
+def get_historical_data(contract, duration, size):
     # Historical data
     app = TestApp()
     app.connect("127.0.0.1", 7496, 12)
     ticker_id = 1
 
     # Desc: reqHistoricalData (tickerId, contract, endDateTime, durationStr, barSizeSetting, whatToShow, useRTH, formatDate, keepUpToDate, chartOptions
-    app.reqHistoricalData(ticker_id, contract, '', '1 D', '1 hour', 'TRADES', False, 1, False, [])
+    app.reqHistoricalData(ticker_id, contract, '', duration, size, 'TRADES', False, 1, False, [])
 
     Timer(2, app.stop).start()
     app.run()
@@ -128,13 +127,3 @@ def historical_data(contract):
     app.df.pop('average')
 
     return app.df
-
-
-# Create contract
-stk_aapl = create_contract('AAPL')
-
-# contract_details(stk_aapl)
-# a = market_price(stk_aapl)
-a = historical_data(stk_aapl)
-print(type(a))
-print(a)
