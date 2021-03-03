@@ -22,7 +22,7 @@ def get_stock_market_data(symbol):
 def get_stock_hist_data(symbol, bar_size, duration, rth):
     # print(get_stock_hist_data(symbol='SPY', bar_size='5 mins', duration='2 D', rth=False))
     stock_contract = Stock(symbol, 'SMART', 'USD')
-    hist_data = util.df(ib.reqHistoricalData(stock_contract, '', barSizeSetting=bar_size, durationStr=duration, whatToShow='TRADES', useRTH=rth)) # Toto trva 0,4s (aj pre 100dni)
+    hist_data = util.output_df(ib.reqHistoricalData(stock_contract, '', barSizeSetting=bar_size, durationStr=duration, whatToShow='TRADES', useRTH=rth)) # Toto trva 0,4s (aj pre 100dni)
     hist_data.pop('average')
     hist_data.pop('barCount')
     # Vrati dataframe
@@ -42,7 +42,7 @@ def get_options_hist_data(symbol, exp, strike, right):
     # print(get_options_hist_data('SPY', '20210319', 400, 'C'))
     options_contract = Option(symbol, exp, strike, right, 'SMART', '100', 'USD')
     options_hist_data = ib.reqHistoricalData(options_contract, '',  barSizeSetting='1 hour', durationStr='10 D',  whatToShow='TRADES',  useRTH=True)
-    df_options_hist_data = util.df(options_hist_data)
+    df_options_hist_data = util.output_df(options_hist_data)
     df_options_hist_data.pop('average')
     df_options_hist_data.pop('barCount')
 
