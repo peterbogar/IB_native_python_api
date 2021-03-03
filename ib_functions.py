@@ -13,8 +13,6 @@ from threading import Timer
 import pandas as pd
 from time import sleep
 
-bid = 0
-ask = 0
 ticker_id = 0
 output_df = pd.DataFrame()
 
@@ -26,21 +24,16 @@ class TestApp(EWrapper, EClient):
         self.output_df = pd.DataFrame()
 
     def error(self, req_id, error_code, error_string):
-        # print("Error: ", req_id, " ", errorCode, " ", errorString)
-        pass
+        if req_id > -1:
+            print("Error: ", req_id, " ", error_code, " ", error_string)
 
     def tickPrice(self, req_id, tick_type, price, attrib):
         # print("Id:", req_id, "Type:", TickTypeEnum.to_str(tick_type), "Price:", price, end=' ')
-        global bid, ask, ticker_id, output_df
+        global ticker_id, output_df
         ticker_id = req_id
-        if TickTypeEnum.to_str(tick_type) == 'BID' or TickTypeEnum.to_str(tick_type) == 'ASK':
+        self.output_df['Symbol'] = None
+        if TickTypeEnum.to_str(tick_type) == 'BID' or TickTypeEnum.to_str(tick_type) == 'ASK' or TickTypeEnum.to_str(tick_type) == 'LAST':
             self.output_df.loc[ticker_id, TickTypeEnum.to_str(tick_type)] = price
-        # if TickTypeEnum.to_str(tick_type) == 'BID':
-        #     bid = price
-        # if TickTypeEnum.to_str(tick_type) == 'ASK':
-        #     ask = price
-        # if TickTypeEnum.to_str(tick_type) == 'CLOSE':
-        #     close = price
 
     # def contractDetails(self, req_id, contract_details):
     #     print("Id:", req_id, contract_details)
