@@ -1,6 +1,6 @@
 # Native IB API
 # Based from https://cdcdyn.interactivebrokers.com/webinars/TA-2018-TWS-Python-Receiving-Market-Data-Study-Notes.pdf
-# Market data and historical data
+# Market and historical data
 # Stock, forex and options
 
 
@@ -9,12 +9,7 @@ from ibapi.wrapper import EWrapper
 from ibapi.contract import Contract
 from ibapi.ticktype import TickTypeEnum
 from ibapi.order import *
-from threading import Timer
 import pandas as pd
-from time import sleep
-
-ticker_id = 0
-output_df = pd.DataFrame()
 
 
 class TestApp(EWrapper, EClient):
@@ -29,9 +24,8 @@ class TestApp(EWrapper, EClient):
 
     def tickPrice(self, req_id, tick_type, price, attrib):
         # print("Id:", req_id, "Type:", TickTypeEnum.to_str(tick_type), "Price:", price, end=' ')
-        global ticker_id, output_df
         ticker_id = req_id
-        if TickTypeEnum.to_str(tick_type) == 'BID' or TickTypeEnum.to_str(tick_type) == 'ASK' or TickTypeEnum.to_str(tick_type) == 'LAST':
+        if TickTypeEnum.to_str(tick_type) == 'BID' or TickTypeEnum.to_str(tick_type) == 'ASK' or TickTypeEnum.to_str(tick_type) == 'LAST' or TickTypeEnum.to_str(tick_type) == 'CLOSE':
             self.output_df.loc[ticker_id, TickTypeEnum.to_str(tick_type)] = price
 
     # def contractDetails(self, req_id, contract_details):
@@ -74,21 +68,21 @@ def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
     contract.exchange = exchange
     contract.currency = currency
     return contract
-#
-#
-# def create_options_contract(symbol, exp, strike, right, exchange='SMART', currency='USD', multiplier='100'):
-#     # opt_spy = create_options_contract('SPY', '20210319', '400', 'C')
-#     contract = Contract()
-#     contract.symbol = symbol
-#     contract.lastTradeDateOrContractMonth = exp
-#     contract.strike = strike
-#     contract.right = right
-#     contract.secType = 'OPT'
-#     contract.exchange = exchange
-#     contract.currency = currency
-#     contract.multiplier = multiplier
-#     return contract
-#
+
+
+def create_options_contract(symbol, exp, strike, right, exchange='SMART', currency='USD', multiplier='100'):
+    # opt_spy = create_options_contract('SPY', '20210319', '400', 'C')
+    contract = Contract()
+    contract.symbol = symbol
+    contract.lastTradeDateOrContractMonth = exp
+    contract.strike = strike
+    contract.right = right
+    contract.secType = 'OPT'
+    contract.exchange = exchange
+    contract.currency = currency
+    contract.multiplier = multiplier
+    return contract
+
 
 # def create_market_order(action, quantity):
 #     order = Order()
@@ -120,22 +114,57 @@ def create_contract(symbol, sec_type='STK', exchange='SMART', currency='USD'):
 #     Timer(2, app.stop).start()
 #     app.run()
 
-#
-# def get_market_price(ticker_id, contract):
-#     # Print current market bid, ask, close
-#     # app = TestApp()
-#     # app.connect("127.0.0.1", 7496, 12)
-#     # ticker_id = 1
-#
-#     # Desc: reqMarketDataType: 1 (default)- live data, 2- frozen live data, 3- delayed data, 4- delayed frozen
-#     app.reqMarketDataType(2)
-#     # Desc: reqMktData(tickerId, contract, genericTickList, snapshot, regulatorySnaphsot, mktDataOptions)
-#     app.reqMktData(ticker_id, contract, '', False, False, [])
-#
-#     Timer(10, app.stop).start()
-#     app.run()
-#
-#     return contract.symbol, bid, ask, close
+
+def get_market_price(ib_connect, symbols):
+    # Print current market bid, ask, close
+    ticker_id = 0
+
+    # Desc: reqMarketDataType: 1 (default)- live data, 2- frozen live data, 3- delayed data, 4- delayed frozen
+    ib_connect.reqMarketDataType(2)
+    # Desc: reqMktData(tickerId, contract, genericTickList, snapshot, regulatorySnaphsot, mktDataOptions)
+    for symbol in symbols:
+        contract = create_contract(symbol)
+        ib_connect.reqMktData(ticker_id, contract, '', True, False, [])
+        ticker_id += 1
+
+
+def get_options_market_price(ib_connect, symbols, exps, strikes, rights):
+    # Print current market bid, ask, close
+    ticker_id = 0
+
+    # Desc: reqMarketDataType: 1 (default)- live data, 2- frozen live data, 3- delayed data, 4- delayed frozen
+    ib_connect.reqMarketDataType(2)
+
+    # Create dataframe with options chain definitions
+    output_df = pd.DataFrame({'Symbol': [], 'Exp': [], 'Strike': [], 'Right': []})
+    for symbol in symbols:
+        for exp in exps:
+            for strike in strikes:
+                for right in rights:
+                    output_df.loc[ticker_id, 'Symbol'] = symbol
+                    output_df.loc[ticker_id, 'Exp'] = exp
+                    output_df.loc[ticker_id, 'Strike'] = strike
+                    output_df.loc[ticker_id, 'Right'] = right
+                    ticker_id += 1
+    print(output_df)
+    print()
+
+    # Read values for creating options contract
+    options_rows = len(output_df.index)
+    for row in range(options_rows):
+        ticker_id = output_df.index[row]
+        symbol = list(output_df.iloc[row])[0]
+        exp = list(output_df.iloc[row])[1]
+        strike = list(output_df.iloc[row])[2]
+        right = list(output_df.iloc[row])[3]
+        contract = create_options_contract(symbol, exp, strike, right)
+        # Desc: reqMktData(tickerId, contract, genericTickList, snapshot, regulatorySnaphsot, mktDataOptions)
+        ib_connect.reqMktData(ticker_id, contract, '', True, False, [])
+
+
+
+
+
 
 
 # def get_historical_data(ticker_id, contract, duration, size):
