@@ -31,7 +31,6 @@ class TestApp(EWrapper, EClient):
         # print("Id:", req_id, "Type:", TickTypeEnum.to_str(tick_type), "Price:", price, end=' ')
         global ticker_id, output_df
         ticker_id = req_id
-        self.output_df['Symbol'] = None
         if TickTypeEnum.to_str(tick_type) == 'BID' or TickTypeEnum.to_str(tick_type) == 'ASK' or TickTypeEnum.to_str(tick_type) == 'LAST':
             self.output_df.loc[ticker_id, TickTypeEnum.to_str(tick_type)] = price
 
